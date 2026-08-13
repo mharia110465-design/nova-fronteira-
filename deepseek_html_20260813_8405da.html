@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>NOVA FRONTEIRA - Shooter Espacial</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #030318, #000000);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Orbitron', 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            padding: 20px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 32px;
+            box-shadow: 0 0 40px rgba(0,255,255,0.2);
+        }
+
+        canvas {
+            display: block;
+            border-radius: 20px;
+            box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.5), 0 10px 30px black;
+            cursor: none;
+        }
+
+        .ui-panel {
+            background: rgba(10, 10, 30, 0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 24px;
+            padding: 18px 20px;
+            width: 260px;
+            border: 1px solid cyan;
+            box-shadow: 0 0 15px cyan;
+            color: #ccf;
+        }
+
+        .stats {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid cyan;
+            padding-bottom: 15px;
+        }
+
+        .stats div {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin: 8px 0;
+        }
+
+        .pontos {
+            color: #ffcc44;
+            text-shadow: 0 0 5px orange;
+        }
+
+        .vidas {
+            color: #ff6666;
+        }
+
+        .boss-indicator {
+            background: #31005e;
+            border-radius: 30px;
+            padding: 6px;
+            font-size: 14px;
+            margin-top: 8px;
+            color: #ffaaee;
+        }
+
+        .shop-section {
+            background: #001122aa;
+            border-radius: 20px;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #0ff;
+        }
+
+        .shop-title {
+            text-align: center;
+            font-weight: bold;
+            color: gold;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .weapon-card {
+            background: #0a0e2a;
+            border-radius: 14px;
+            padding: 8px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.2s;
+            border-left: 4px solid cyan;
+        }
+
+        .weapon-card button {
+            background: #2a2f5e;
+            border: none;
+            color: white;
+            font-family: monospace;
+            font-weight: bold;
+            padding: 5px 12px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 14px;
+        }
+
+        .weapon-card button:hover {
+            background: gold;
+            color: black;
+            transform: scale(1.02);
+            box-shadow: 0 0 6px gold;
+        }
+
+        .weapon-name {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .weapon-price {
+            color: #ffaa44;
+            font-size: 12px;
+        }
+
+        .current-weapon {
+            background: #0f3460;
+            margin-top: 12px;
+            padding: 8px;
+            border-radius: 14px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .controls {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 16px;
+            color: #7f8cff;
+        }
+
+        button.restart {
+            background: #ff3366;
+            border: none;
+            width: 100%;
+            padding: 8px;
+            border-radius: 40px;
+            font-weight: bold;
+            margin-top: 12px;
+            color: white;
+            cursor: pointer;
+            font-family: monospace;
+            transition: 0.2s;
+        }
+
+        button.restart:hover {
+            background: #ff6644;
+            box-shadow: 0 0 10px red;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <canvas id="gameCanvas" width="1000" height="650"></canvas>
+    <div class="ui-panel">
+        <div class="stats">
+            <div>⭐ PONTOS: <span id="scoreValue" class="pontos">0</span></div>
+            <div>❤️ VIDAS: <span id="livesValue" class="vidas">3</span></div>
+            <div>💥 MOEDAS: <span id="coinsValue">0</span></div>
+            <div class="boss-indicator" id="bossWarning">🌀 CHEFÃO: Nenhum</div>
+        </div>
+        <div class="shop-section">
+            <div class="shop-title">🛸 LOJA DE ARMAMENTOS</div>
+            <div class="weapon-card">
+                <div><span class="weapon-name">🔫 BLASTER BÁSICO</span><br><span class="weapon-price">★ grátis</span></div>
+                <button data-weapon="basic">EQUIPAR</button>
+            </div>
+            <div class="weapon-card">
+                <div><span class="weapon-name">⚡ RAIO DUPLO</span><br><span class="weapon-price">🏆 30 pts</span></div>
+                <button data-weapon="double">COMPRAR</button>
+            </div>
+            <div class="weapon-card">
+                <div><span class="weapon-name">💥 CANHÃO TRIPLO</span><br><span class="weapon-price">🏆 70 pts</span></div>
+                <button data-weapon="triple">COMPRAR</button>
+            </div>
+            <div class="weapon-card">
+                <div><span class="weapon-name">🌠 RAIO PERFURANTE</span><br><span class="weapon-price">🏆 120 pts</span></div>
+                <button data-weapon="pierce">COMPRAR</button>
+            </div>
+            <div class="current-weapon" id="currentWeaponDisplay">🔫 Equipado: Básico</div>
+        </div>
+        <div class="controls">
+            🎮 SETAS: mover | ESPAÇO: atirar<br>
+            🛸 Derrote chefões a cada 30 pontos!
+        </div>
+        <button class="restart" id="restartBtn">🔄 REINICIAR JOGO</button>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // --- CANVAS ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- DIMENSÕES ---
+        const W = 1000, H = 650;
+
+        // --- JOGADOR ---
+        let player = {
+            x: W/2,
+            y: H - 70,
+            width: 32,
+            height: 32,
+            lives: 3,
+            invincibleFrames: 0   // frames pós dano
+        };
+
+        // --- TIROS ---
+        let bullets = [];
+        let bulletSpeed = -7;
+        let fireCooldown = 0;
+        let fireDelay = 10;      // frames entre tiros
+
+        // --- INIMIGOS COMUNS ---
+        let enemies = [];
+
+        // --- BOSS ---
+        let boss = null;          // objeto boss ativo
+        let bossPhase = 0;        // contador de quantos bosses já nasceram (dificuldade)
+        let nextBossScoreThreshold = 30;  // quando passar disso, spawna boss
+
+        // --- PONTUAÇÃO & MOEDAS (moedas = pontos para compras)---
+        let score = 0;
+        let coins = 0;            // mesmo que pontos para comprar armas
+
+        // --- ARMAS ATUAL ---
+        let currentWeapon = "basic";  // basic, double, triple, pierce
+
+        // --- CONTROLE TECLADO ---
+        const keys = {
+            ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false,
+            space: false
+        };
+
+        let gameOver = false;
+        let animationId = null;
+
+        // --- SPAWN DE INIMIGOS COMUNS ---
+        let enemySpawnTimer = 0;
+        let enemySpawnDelay = 28;   // frames
+
+        // --- EFEITOS VISUAIS & PARTÍCULAS ---
+        let particles = [];
+
+        // --- NOMES CRIATIVOS DE CHEFÕES (incrementais)---
+        const bossNames = [
+            "ASTEROIDE VORAZ", "COMETA ESPECTRAL", "CRUZADOR SIRIUS", "DEVORADOR NEBULOSO",
+            "TITÃ QUÂNTICO", "OLHAR DE ORION", "DRAGÃO DE ÉTER", "COLOSSO ANDRÔMEDA"
+        ];
+
+        // ----- FUNÇÕES AUXILIARES -----
+        function addParticles(x, y, color, count=4) {
+            for(let i=0;i<count;i++){
+                particles.push({
+                    x: x, y: y, vx: (Math.random() - 0.5)*3, vy: (Math.random() - 0.5)*3,
+                    life: 12, color: color, size: Math.random()*3+2
+                });
+            }
+        }
+
+        // reset global (inicio ou reinicio)
+        function resetGame(){
+            gameOver = false;
+            score = 0;
+            coins = 0;
+            player.lives = 3;
+            player.invincibleFrames = 0;
+            player.x = W/2;
+            player.y = H - 70;
+            bullets = [];
+            enemies = [];
+            boss = null;
+            bossPhase = 0;
+            nextBossScoreThreshold = 30;
+            currentWeapon = "basic";
+            fireCooldown = 0;
+            enemySpawnTimer = 0;
+            updateUI();
+            updateWeaponUI();
+        }
+
+        // comprar arma
+        function buyWeapon(weaponType, cost){
+            if(coins >= cost){
+                coins -= cost;
+                currentWeapon = weaponType;
+                updateUI();
+                updateWeaponUI();
+                addParticles(player.x, player.y, "gold", 8);
+                return true;
+            }
+            return false;
+        }
+
+        function updateUI(){
+            document.getElementById('scoreValue').innerText = score;
+            document.getElementById('livesValue').innerText = player.lives;
+            document.getElementById('coinsValue').innerText = coins;
+            if(boss){
+                let bossNameStr = boss.name || "CHEFÃO CÓSMICO";
+                document.getElementById('bossWarning').innerHTML = `⚠️ BOSS: ${bossNameStr} ⚠️`;
+            } else {
+                document.getElementById('bossWarning').innerHTML = `🌀 PRÓXIMO BOSS em ${Math.max(0, nextBossScoreThreshold - score)} pts`;
+            }
+        }
+
+        function updateWeaponUI(){
+            let weaponMap = { basic: "🔫 Básico", double: "⚡ Raio Duplo", triple: "💥 Canhão Triplo", pierce: "🌠 Perfurante"};
+            document.getElementById('currentWeaponDisplay').innerHTML = `🔧 Equipado: ${weaponMap[currentWeapon]}`;
+        }
+
+        // atirar conforme arma
+        function shoot(){
+            if(gameOver) return;
+            if(currentWeapon === "basic"){
+                bullets.push({x: player.x + player.width/2 - 3, y: player.y - 10, w: 6, h: 12, damage: 1, pierce: false});
+            }
+            else if(currentWeapon === "double"){
+                bullets.push({x: player.x + 5, y: player.y - 8, w: 5, h: 12, damage: 1, pierce: false});
+                bullets.push({x: player.x + player.width - 10, y: player.y - 8, w: 5, h: 12, damage: 1, pierce: false});
+            }
+            else if(currentWeapon === "triple"){
+                bullets.push({x: player.x + player.width/2 - 3, y: player.y - 12, w: 6, h: 12, damage: 1, pierce: false});
+                bullets.push({x: player.x + 3, y: player.y - 6, w: 5, h: 12, damage: 1, pierce: false});
+                bullets.push({x: player.x + player.width - 8, y: player.y - 6, w: 5, h: 12, damage: 1, pierce: false});
+            }
+            else if(currentWeapon === "pierce"){
+                bullets.push({x: player.x + player.width/2 - 5, y: player.y - 15, w: 10, h: 16, damage: 2, pierce: true});
+            }
+        }
+
+        // spawn inimigo comum
+        function spawnEnemy(){
+            let size = 28;
+            let x = Math.random() * (W - size);
+            let y = -size;
+            let hp = 1;
+            let speedY = 2 + Math.floor(Math.random() * 3) + (bossPhase * 0.3);
+            enemies.push({x: x, y: y, width: size, height: size, hp: hp, maxHp: 1, speedY: speedY, color: "#a44eff", type: "normal"});
+        }
+
+        // spawn boss baseado na pontuação
+        function spawnBossIfNeeded(){
+            if(!boss && score >= nextBossScoreThreshold){
+                bossPhase++;
+                let bossIndex = (bossPhase-1) % bossNames.length;
+                let bossName = bossNames[bossIndex];
+                let bossHp = 25 + bossPhase * 8;
+                if(bossHp > 95) bossHp = 95;
+                let bossSize = 70;
+                let bossX = W/2 - bossSize/2;
+                boss = {
+                    x: bossX, y: 40, width: bossSize, height: bossSize,
+                    hp: bossHp, maxHp: bossHp, name: bossName,
+                    speedX: 1.2 + Math.min(3, bossPhase*0.3),
+                    direction: 1,
+                    attackTimer: 0,
+                    attackDelay: 40
+                };
+                nextBossScoreThreshold = score + 30;
+                updateUI();
+                addParticles(boss.x+boss.width/2, boss.y+boss.height/2, "red", 20);
+            }
+        }
+
+        // atualizar boss (movimento e ataques)
+        function updateBoss(){
+            if(!boss) return;
+            // movimento lateral
+            boss.x += boss.speedX * boss.direction;
+            if(boss.x <= 10) boss.direction = 1;
+            if(boss.x + boss.width >= W-10) boss.direction = -1;
+
+            // atirar projéteis do boss
+            if(boss.attackTimer <= 0){
+                // padrão de tiro: 3 projéteis
+                for(let i = -1; i <=1; i++){
+                    let angle = (i * 0.4);
+                    let vx = Math.sin(angle)*2.5;
+                    let vy = 3.5;
+                    enemies.push({
+                        x: boss.x + boss.width/2 - 8, y: boss.y + boss.height-10,
+                        width: 12, height: 12, hp: 1, maxHp: 1,
+                        speedY: vy, speedX: vx, color: "#ff5500", type: "bossProjectile",
+                        damage: 1
+                    });
+                }
+                boss.attackTimer = boss.attackDelay - Math.min(20, bossPhase*0.7);
+                if(boss.attackTimer < 18) boss.attackTimer = 18;
+            } else {
+                boss.attackTimer--;
+            }
+        }
+
+        // atualizar entidades
+        function updateGame(){
+            if(gameOver) return;
+
+            // redução invencibilidade
+            if(player.invincibleFrames > 0) player.invincibleFrames--;
+
+            // movimento jogador (setas)
+            if(keys.ArrowLeft && player.x > 5) player.x -= 6;
+            if(keys.ArrowRight && player.x + player.width < W-5) player.x += 6;
+            if(keys.ArrowUp && player.y > H/2) player.y -= 5;
+            if(keys.ArrowDown && player.y + player.height < H-15) player.y += 5;
+
+            // cooldown tiro
+            if(fireCooldown > 0) fireCooldown--;
+            if(keys.space && fireCooldown === 0 && !gameOver){
+                shoot();
+                fireCooldown = fireDelay;
+            }
+
+            // atualizar tiros
+            for(let i=0;i<bullets.length;i++){
+                bullets[i].y += bulletSpeed;
+                if(bullets[i].y + bullets[i].h < 0 || bullets[i].y > H) {
+                    bullets.splice(i,1);
+                    i--;
+                }
+            }
+
+            // inimigos + colisoes com tiros
+            for(let i=0;i<enemies.length;i++){
+                let e = enemies[i];
+                e.y += e.speedY;
+                if(e.speedX) e.x += e.speedX;
+                if(e.y > H+100 || e.x+ e.width < -50 || e.x > W+50){
+                    enemies.splice(i,1);
+                    i--;
+                    continue;
+                }
+                // colisão com jogador (dano)
+                if(!gameOver && player.invincibleFrames === 0 &&
+                   e.x < player.x+player.width && e.x+e.width > player.x &&
+                   e.y < player.y+player.height && e.y+e.height > player.y){
+                    player.lives--;
+                    player.invincibleFrames = 35;
+                    addParticles(player.x+player.width/2, player.y+player.height/2, "#ff8888", 10);
+                    if(player.lives <= 0){
+                        gameOver = true;
+                        updateUI();
+                        return;
+                    }
+                    enemies.splice(i,1);
+                    i--;
+                    updateUI();
+                    continue;
+                }
+            }
+
+            // colisão tiros x inimigos
+            for(let i=0;i<bullets.length;i++){
+                let bullet = bullets[i];
+                let hit = false;
+                for(let j=0;j<enemies.length;j++){
+                    let e = enemies[j];
+                    if(bullet.x < e.x+e.width && bullet.x+bullet.w > e.x &&
+                       bullet.y < e.y+e.height && bullet.y+bullet.h > e.y){
+                        e.hp -= bullet.damage;
+                        hit = true;
+                        addParticles(e.x+e.width/2, e.y+e.height/2, "#ffaa55", 3);
+                        if(e.hp <= 0){
+                            // abater inimigo
+                            let gain = (e.type === "bossProjectile") ? 5 : 10;
+                            score += gain;
+                            coins += gain;
+                            enemies.splice(j,1);
+                            updateUI();
+                            spawnBossIfNeeded(); // após matar, checar boss
+                        }
+                        break;
+                    }
+                }
+                if(hit && !bullet.pierce){
+                    bullets.splice(i,1);
+                    i--;
+                } else if(hit && bullet.pierce){
+                    // projétil perfurante não some, só reduz dano depois de usar? mantém
+                }
+            }
+
+            // colisão com BOSS (tiros)
+            if(boss){
+                for(let i=0;i<bullets.length;i++){
+                    let bullet = bullets[i];
+                    if(bullet.x < boss.x+boss.width && bullet.x+bullet.w > boss.x &&
+                       bullet.y < boss.y+boss.height && bullet.y+bullet.h > boss.y){
+                        boss.hp -= bullet.damage;
+                        addParticles(boss.x+boss.width/2, boss.y+boss.height/2, "#ffaa66", 5);
+                        bullets.splice(i,1);
+                        i--;
+                        if(boss.hp <= 0){
+                            let bossReward = 40 + bossPhase * 5;
+                            score += bossReward;
+                            coins += bossReward;
+                            addParticles(boss.x+boss.width/2, boss.y+boss.height/2, "gold", 30);
+                            boss = null;
+                            updateUI();
+                            spawnBossIfNeeded(); // verifica se outro boss já deve spawnar (se atingiu threshold)
+                        }
+                        break;
+                    }
+                }
+                if(boss) updateBoss();
+            }
+
+            // spawn de inimigos comuns (se não houver boss, spawn mais rápido)
+            if(enemySpawnTimer <= 0){
+                if(!boss) {
+                    spawnEnemy();
+                    if(Math.random()<0.4) spawnEnemy(); // as vezes duplo
+                } else {
+                    if(Math.random()<0.25) spawnEnemy(); // com boss, menos inimigos
+                }
+                enemySpawnTimer = enemySpawnDelay - (bossPhase*0.5);
+                if(enemySpawnTimer < 12) enemySpawnTimer = 12;
+            } else {
+                enemySpawnTimer--;
+            }
+
+            // partículas
+            for(let i=0;i<particles.length;i++){
+                particles[i].x += particles[i].vx;
+                particles[i].y += particles[i].vy;
+                particles[i].life--;
+                if(particles[i].life <= 0) particles.splice(i,1), i--;
+            }
+        }
+
+        // ---------- RENDER GRÁFICO MODERNO FLIPERAMA ----------
+        function draw(){
+            ctx.clearRect(0,0,W,H);
+            // fundo estrelado dinâmico
+            ctx.fillStyle = "#010018";
+            ctx.fillRect(0,0,W,H);
+            for(let i=0;i<200;i++){
+                if(i%2 === 0) continue;
+                let sx = (i*131)%W, sy = (i*253 + Date.now()*0.1)%H;
+                ctx.fillStyle = `rgba(255,240,200,${0.3+Math.sin(Date.now()*0.002+i)*0.2})`;
+                ctx.fillRect(sx, sy, 2,2);
+            }
+            // nebulosa
+            ctx.globalAlpha=0.2;
+            for(let i=0;i<3;i++){
+                ctx.beginPath();
+                ctx.arc(200+i*300, 400, 150, 0,Math.PI*2);
+                ctx.fillStyle = "#a06eff";
+                ctx.fill();
+            }
+            ctx.globalAlpha=1;
+
+            // jogador (nave estilo fliperama)
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#0ff";
+            ctx.fillStyle = "#7df9ff";
+            ctx.beginPath();
+            ctx.moveTo(player.x+player.width/2, player.y-8);
+            ctx.lineTo(player.x+player.width-8, player.y+player.height-6);
+            ctx.lineTo(player.x+player.width/2, player.y+player.height-2);
+            ctx.lineTo(player.x+8, player.y+player.height-6);
+            ctx.fill();
+            ctx.fillStyle = "#44caff";
+            ctx.fillRect(player.x+12, player.y+8, 8, 12);
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(player.x+player.width/2, player.y+12, 6, 0, Math.PI*2);
+            ctx.fill();
+
+            // projéteis
+            for(let b of bullets){
+                ctx.fillStyle = "#ffff80";
+                ctx.shadowColor = "yellow";
+                ctx.fillRect(b.x, b.y, b.w, b.h);
+            }
+
+            // inimigos
+            for(let e of enemies){
+                if(e.type === "bossProjectile"){
+                    ctx.fillStyle = "#ff4444";
+                    ctx.beginPath();
+                    ctx.ellipse(e.x+e.width/2, e.y+e.height/2, e.width/2, e.height/2, 0, 0, Math.PI*2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = e.color;
+                    ctx.shadowColor = "#ff44aa";
+                    ctx.beginPath();
+                    ctx.roundRect(e.x, e.y, e.width, e.height, 6);
+                    ctx.fill();
+                    ctx.fillStyle = "white";
+                    ctx.fillText("⚡", e.x+8, e.y+18);
+                }
+            }
+
+            // boss
+            if(boss){
+                ctx.fillStyle = "#aa22ff";
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = "magenta";
+                ctx.beginPath();
+                ctx.roundRect(boss.x, boss.y, boss.width, boss.height, 14);
+                ctx.fill();
+                ctx.fillStyle = "#ffcc88";
+                ctx.font = "bold 16px 'Orbitron'";
+                ctx.shadowBlur = 4;
+                ctx.fillText(boss.name, boss.x+5, boss.y-5);
+                ctx.fillStyle = "red";
+                ctx.fillRect(boss.x+5, boss.y-12, (boss.width-10) * (boss.hp/boss.maxHp), 6);
+                ctx.fillStyle = "white";
+                ctx.fillText(`❤️ ${boss.hp}`, boss.x+10, boss.y-2);
+            }
+
+            // partículas
+            for(let p of particles){
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life/12;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            }
+            ctx.globalAlpha=1;
+
+            // interface na tela (extras)
+            if(gameOver){
+                ctx.font = "36px Orbitron";
+                ctx.fillStyle = "#ff3366";
+                ctx.shadowBlur = 0;
+                ctx.fillText("GAME OVER", W/2-120, H/2);
+                ctx.font = "18px monospace";
+                ctx.fillStyle = "cyan";
+                ctx.fillText("Clique em REINICIAR", W/2-100, H/2+60);
+            }
+
+            // dica boss ativo
+            if(boss){
+                ctx.font = "12px monospace";
+                ctx.fillStyle = "#ffaaaa";
+                ctx.fillText(`⚔️ BOSS: ${boss.name} ⚔️`, W-180, 30);
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // roundRect helper
+        if(!CanvasRenderingContext2D.prototype.roundRect){
+            CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+                if(w<2*r) r=w/2;
+                if(h<2*r) r=h/2;
+                this.moveTo(x+r,y);
+                this.lineTo(x+w-r,y);
+                this.quadraticCurveTo(x+w,y,x+w,y+r);
+                this.lineTo(x+w,y+h-r);
+                this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+                this.lineTo(x+r,y+h);
+                this.quadraticCurveTo(x,y+h,x,y+h-r);
+                this.lineTo(x,y+r);
+                this.quadraticCurveTo(x,y,x+r,y);
+                return this;
+            };
+        }
+
+        // loop principal
+        function gameLoop(){
+            if(!gameOver){
+                updateGame();
+            }
+            draw();
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // eventos teclado
+        function handleKeyDown(e){
+            if(e.key === "ArrowLeft") keys.ArrowLeft = true;
+            if(e.key === "ArrowRight") keys.ArrowRight = true;
+            if(e.key === "ArrowUp") keys.ArrowUp = true;
+            if(e.key === "ArrowDown") keys.ArrowDown = true;
+            if(e.key === " " || e.key === "Space") {
+                keys.space = true;
+                e.preventDefault();
+            }
+        }
+
+        function handleKeyUp(e){
+            if(e.key === "ArrowLeft") keys.ArrowLeft = false;
+            if(e.key === "ArrowRight") keys.ArrowRight = false;
+            if(e.key === "ArrowUp") keys.ArrowUp = false;
+            if(e.key === "ArrowDown") keys.ArrowDown = false;
+            if(e.key === " " || e.key === "Space") {
+                keys.space = false;
+                e.preventDefault();
+            }
+        }
+
+        // eventos loja
+        function setupShopButtons(){
+            document.querySelectorAll('[data-weapon]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if(gameOver) return;
+                    let weapon = btn.dataset.weapon;
+                    if(weapon === "basic"){
+                        currentWeapon = "basic";
+                        updateWeaponUI();
+                        addParticles(player.x, player.y, "cyan", 5);
+                    }
+                    else if(weapon === "double") buyWeapon("double", 30);
+                    else if(weapon === "triple") buyWeapon("triple", 70);
+                    else if(weapon === "pierce") buyWeapon("pierce", 120);
+                });
+            });
+        }
+
+        document.getElementById('restartBtn').addEventListener('click', ()=>{
+            cancelAnimationFrame(animationId);
+            resetGame();
+            gameOver = false;
+            enemies = [];
+            bullets = [];
+            boss = null;
+            particles = [];
+            nextBossScoreThreshold = 30;
+            bossPhase = 0;
+            player.invincibleFrames=0;
+            animationId = requestAnimationFrame(gameLoop);
+        });
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        resetGame();
+        setupShopButtons();
+        updateUI();
+        updateWeaponUI();
+        gameLoop();
+    })();
+</script>
+</body>
+</html>
